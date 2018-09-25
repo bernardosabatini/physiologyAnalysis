@@ -1,35 +1,30 @@
-% SPfiles=dir('SP*.mat');
-% 
-% allCells=cell(1,length(SPfiles));
-% for counter=1:length(SPfiles)
-% 	cc=SPfiles(counter);
-% 	load(cc.name)
-% 	allCells{counter}=newCell;
-% end
-% 
-% apFields={'AP_AHP_V',...
-%        'AP_thresh_V',...
-%     'AP_thresh_time',...
-%            'AP_HW_V',...
-%              'AP_HW',...
-%        'AP_max_dVdT'};
-%    
-% apFieldsN=length(apFields);
-	   
+% the list of pulse amplitudes to keep and analyze.  It doesn't matter if
+% there are entries here that are not used
 bExact=[-100 -50 0 20 40 50 60 80 100 150 200 250];
+
+% instead define bins by low and high
 bLow=[-100 0 19 49 100 150 200 250 ];
 bHigh=[-100 0 31 61 100 150 200 250 ];
-pCount=length(bExact);
 
-avgV=zeros(4,pCount);
-avgI=zeros(4,pCount);
-avgA=zeros(4,pCount);
-avgN=zeros(4,pCount);
+% use the bins or the exact?
+useExact=1;
 
-stdV=zeros(4,pCount);
-stdI=zeros(4,pCount);
-stdA=zeros(4,pCount);
-stdN=zeros(4,pCount);
+if useExact
+	pCount=length(bExact);
+else
+	pCount=length(bLow);
+end
+
+maxZones=4;
+avgV=zeros(maxZones,pCount);
+avgI=zeros(maxZones,pCount);
+avgA=zeros(maxZones,pCount);
+avgN=zeros(maxZones,pCount);
+
+stdV=zeros(maxZones,pCount);
+stdI=zeros(maxZones,pCount);
+stdA=zeros(maxZones,pCount);
+stdN=zeros(maxZones,pCount);
 
 allCounter=0;
 for runThru=1:2 % first run calcualtes the averages.  Second does the Standard Deviation
@@ -42,35 +37,41 @@ for runThru=1:2 % first run calcualtes the averages.  Second does the Standard D
 		if sum(aps)>10
 			for bCounter=1:pCount
 				ff1=[];
-				ff=find((newCell.pulseI==bExact(bCounter)));
-				if ~isempty(ff)
-					ff1=ff(1);
-	% 			else
-	% 				ff=find((newCell.pulseI>bLow(bCounter)) & (newCell.pulseI<bHigh(bCounter)));
-	% 				if ~isempty(ff)
-	% 					ff1=ff(1);
-	% 				end
-				end
-				if ~isempty(ff1) && ~isnan(newCell.pulseV(ff1)) && ...
-					(newCell.restMean(ff1)<-50) && (newCell.restMean(ff1)>-80) && (newCell.restSD(ff1)<5)...
-					&& (newCell.checkPulseRpeak(ff1)>100)
-
-					zone=getZone(newCell);
-					if zone=='M'
-						indZone=2;
-					elseif zone=='C'
-						indZone=3;
-					elseif zone=='L'
-						indZone=4;
+				if useExact
+					ff=find((newCell.pulseI==bExact(bCounter)));
+					if ~isempty(ff)
+						ff1=ff(1);
 					end
+				else
+					ff=find((newCell.pulseI>=bLow(bCounter)) & (newCell.pulseI<=bHigh(bCounter)));
+					if ~isempty(ff)
+						ff1=ff(1);
+					end
+				end
+				if ~isempty(ff1)  && ~isnan(newCell.pulseV(ff1)) % && ...
+				%	(newCell.restMean(ff1)<-50) && (newCell.restMea n(ff1)>-80) && (newCell.restSD(ff1)<5)...
+				%	&& (newCell.checkPulseRpeak(ff1)>100)
 
-					for ind=[1 indZone]  % run through it once to put in the ALL pile and then in zone specific pile
-						if runThru==1
+					% write the function getZone to subdivide cells into
+					% different classes.  Return an integer of 2 or greater
+					% to specify the zone.  
+					% 1 is used to store all the cells
+					% just return 1 if there is no sub-dividing cells
+					zone=getZone(newCell);
+
+					if zone==1
+						zoneList=1;
+					else
+						zoneList=[1 zone];
+					end
+					
+					for ind=zoneList  % run through it once to put in the ALL pile and then in zone specific pile
+						if runThru==1 % first time through calculate the average
 							avgV(ind, bCounter)=avgV(ind, bCounter)+newCell.pulseV(ff1);
 							avgI(ind, bCounter)=avgI(ind, bCounter)+newCell.pulseI(ff1);
 							avgA(ind, bCounter)=avgA(ind, bCounter)+newCell.nAP(ff1);
 							avgN(ind, bCounter)=avgN(ind, bCounter)+1;
-						else
+						else % first time through calculate the standard deviation
 							stdV(ind, bCounter)=stdV(ind, bCounter)+(newCell.pulseV(ff1)-avgV(ind, bCounter))^2;
 							stdI(ind, bCounter)=stdI(ind, bCounter)+(newCell.pulseI(ff1)-avgI(ind, bCounter))^2;
 							stdA(ind, bCounter)=stdA(ind, bCounter)+(newCell.nAP(ff1)-avgA(ind, bCounter))^2;
@@ -81,19 +82,23 @@ for runThru=1:2 % first run calcualtes the averages.  Second does the Standard D
 			end
 		end
 	end
+	
 	if runThru==1
 		avgI=avgI./avgN;
 		avgV=avgV./avgN;
 		avgA=avgA./avgN;
 	else
-		stdI=(stdI).^(0.5)./stdN;
-		stdV=(stdV).^(0.5)./stdN;
-		stdA=(stdA).^(0.5)./stdN;
+		stdI=(stdI./stdN).^(0.5);
+		stdV=(stdV./stdN).^(0.5);
+		stdA=(stdA./stdN).^(0.5);
+		semI=stdI./(stdN.^(0.5));
+		semV=stdV./(stdN.^(0.5));
+		semA=stdA./(stdN.^(0.5));
 	end
 end
 
 figure;
-for c=2:4
+for c=1:maxZones
 	vv=avgV(c,:);
 	ii=avgI(c,:);
 	vv(isnan(vv))=[];
@@ -108,7 +113,7 @@ for c=2:4
 end
 
 figure;
-for c=2:4
+for c=1:maxZones
 	aa=avgA(c,:);
 	ii=avgI(c,:);
 	aa(isnan(aa))=[];
@@ -124,7 +129,7 @@ for c=2:4
 end
 
 figure;
-for c=2:4
+for c=1:maxZones
 	aa=avgA(c,:);
 	vv=avgV(c,:);
 	aa(isnan(aa))=[];

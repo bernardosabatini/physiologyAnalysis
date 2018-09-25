@@ -85,6 +85,13 @@ function [ output_args ] = phAnalyzeIntrinsicProperties( cellList, varargin )
 	% should be used or if all repeated occurences should be processed 
 	firstOnly=1; 
 
+	% additional path postfix
+	% in out data there are subfolders within the data folders.  This can
+	% be set to '' for most users
+	pathPostfix = '';  % '/WW_Gil'
+
+	% what are the start and end times of the variable current pulse
+	% injections
 	pulseStart=1500;
 	pulseEnd=2500;
 
@@ -126,10 +133,13 @@ function [ output_args ] = phAnalyzeIntrinsicProperties( cellList, varargin )
     outputRowCounter=1;
 
 	for c=1:2:length(varargin)
-		if isempty(varargin{c+1})
+		vv=varargin{c+1};
+		if isempty(vv)
 			vStr='[]';
-		else
-			vStr=num2str(varargin{c+1});
+		elseif isnumeric(vv)
+			vStr=num2str(v);
+		elseif ischar(vv)
+			vStr=['''' vv ''''];
 		end
 		
 		disp(['Override: ' varargin{c} '=' vStr]);
@@ -251,8 +261,8 @@ function [ output_args ] = phAnalyzeIntrinsicProperties( cellList, varargin )
 
 	for cellCounter=cellList 
 		rowCounter=cellCounter+1; % the first row has headers
-		fullpath=[prepath num2str(csTableRaw{rowCounter, ind.Date}) '/WW_Gil'];
-		fullpathshort=[prepath num2str(csTableRaw{rowCounter, ind.Date})];
+		fullpath=[prepath num2str(csTableRaw{rowCounter, ind.Folder}) pathPostfix];
+		fullpathshort=[prepath num2str(csTableRaw{rowCounter, ind.Folder})];
 		sStart=extractNum(csTableRaw{rowCounter, ind.SweepStart});
 		sEnd=extractNum(csTableRaw{rowCounter, ind.SweepEnd});
 
@@ -533,14 +543,14 @@ function [ output_args ] = phAnalyzeIntrinsicProperties( cellList, varargin )
 					end
 				end
 
-				newCell.pulseAP{sCounter}=phAnalyzeAP(SR(pulseStart, pulseEnd));
+				newCell.pulseAP{sCounter}=phAnalyzeAP(SR(pulseStart, pulseEnd), acqRate);
 				if isempty(newCell.pulseAP{sCounter})
 					newCell.nAP(sCounter)=0;
 				else
 					newCell.nAP(sCounter)=newCell.pulseAP{sCounter}.nAP;
 				end
 
-				newCell.postAP{sCounter}=phAnalyzeAP(SR(pulseEnd+1, floor(length(acqData)/acqRate)));
+				newCell.postAP{sCounter}=phAnalyzeAP(SR(pulseEnd+1, floor(length(acqData)/acqRate)), acqRate);
 				if isempty(newCell.postAP{sCounter})
 					newCell.reboundAP(sCounter)=0;
 				else
