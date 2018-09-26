@@ -3,6 +3,8 @@ function varargout=shadedErrorBar(x,y,errBar,varargin)
 %
 % function H=shadedErrorBar(x,y,errBar, ...)
 %
+% THIS IS FROM https://github.com/raacampbell/shadedErrorBar
+%
 % Purpose 
 % Makes a 2-d line plot with a pretty shaded error bar made
 % using patch. Error bar color is chosen automatically.
