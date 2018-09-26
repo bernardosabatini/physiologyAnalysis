@@ -64,27 +64,30 @@ function [ results ] = phAnalyzeAP(dData, acqRate)
         results.AP_thresh_time(counter)=I;
 
 		
-		HW_V=(results.AP_peak_V(counter)-results.AP_thresh_V(counter))/2+results.AP_thresh_V(counter);
-        [ggUp, ggDown]=phUtil_FindXings(dData(lastMin:Imin), HW_V, 1);
-		if length(ggDown)>length(ggUp)
-			if ggDown(1)<ggUp(1)
-				ggDown=ggDown(2:(length(ggUp)+1));
-			else
-				disp('problem with ggDown');
+		if (results.AP_peak_V(counter)-results.AP_thresh_V(counter))>20 % if there is not at least 20 mV between threshold and peak, then skip
+			HW_V=(results.AP_peak_V(counter)-results.AP_thresh_V(counter))/2+results.AP_thresh_V(counter);
+			[ggUp, ggDown]=phUtil_FindXings(dData(lastMin:Imin), HW_V, 1);
+			if length(ggDown)>length(ggUp)
+				if ggDown(1)<ggUp(1)
+					ggDown=ggDown(2:(length(ggUp)+1));
+				else
+					disp('problem with ggDown');
+				end
 			end
-		end
-        results.AP_HW(counter)=ggDown-ggUp;
-        results.AP_HW_V(counter)=HW_V;
 
-        [ggUp, ggDown]=phUtil_FindXings(dData(lastMin:Imin), 0, 1);
-		if length(ggDown)>length(ggUp)
-			if ggDown(1)<ggUp(1)
-				ggDown=ggDown(2:(length(ggUp)+1));
-			else
-				disp('problem with ggDown');
+			results.AP_HW(counter)=ggDown(1)-ggUp(1);
+			results.AP_HW_V(counter)=HW_V;
+
+			[ggUp, ggDown]=phUtil_FindXings(dData(lastMin:Imin), 0, 1);
+			if length(ggDown)>length(ggUp)
+				if ggDown(1)<ggUp(1)
+					ggDown=ggDown(2:(length(ggUp)+1));
+				else
+					disp('problem with ggDown');
+				end
 			end
+			results.AP_0W(counter)=ggDown(1)-ggUp(1);
 		end
-        results.AP_0W(counter)=ggDown-ggUp;
 
 		lastMin=Imin;
 	end

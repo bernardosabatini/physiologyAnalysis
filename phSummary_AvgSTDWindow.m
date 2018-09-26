@@ -1,6 +1,11 @@
-function [ meanData, stdData ] = processWindowData
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [ meanData, stdData ] = phSummary_AvgSTDWindow(doPlot)
+% Click on a window and run this.  It returns the avg and the std of all
+% the data in the plots
+
+	if nargin<1
+		doPlot=0;
+	end
+	
 
 	ll=get(gca, 'Children');
 	dCount=length(ll);
@@ -19,6 +24,10 @@ function [ meanData, stdData ] = processWindowData
 	end
 	stdData=sqrt(stdData);
 	
-	
+	if doPlot
+		figure
+		hold on
+		shadedErrorBar(1:length(meanData), meanData, stdData)
+	end
 end
 
